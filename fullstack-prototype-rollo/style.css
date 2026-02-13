@@ -1,15 +1,23 @@
-body {
-  background-color: #f8f9fa; /* Light gray background */
-}
+.page { 
+    display: none;
+ }
 
-h1 {
-  font-weight: 700;
-}
+.page.active { 
+    display: block;
+ }
 
-ul li {
-  margin-bottom: 0.5rem;
-}
+body.not-authenticated .role-logged-in { 
+    display: none;
+ }
 
-.btn-primary {
-  font-weight: 600;
-}
+body.authenticated .role-logged-out { 
+    display: none;
+ }
+
+.role-admin { 
+    display: none;
+ }
+ 
+body.is-admin .role-admin { 
+    display: block;
+ }
