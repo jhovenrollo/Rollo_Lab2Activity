@@ -8,7 +8,7 @@ window.db = {
   accounts:[],
   departments:[],
   employees:[],
-  request:[]
+  requests:[]
 };
 
 //LOAD STORAGE
@@ -35,25 +35,31 @@ function loadFromStorage() {
 }
 //SEEDS DATA
 function seedDatabase() {
-    window.db = {
-        accounts: [
-            {
-                firstName: "Joben",
-                lastName: "Admin",
-                email: "admin@example.com",
-                password:"Password123!",
-                role: "admin",
-                verified: true
-            }
-        ],
-        departments: [
-            {id: 1, name: "Engineering"},
-            {id: 2, name: "HR"}
-        ],
-        employees: [],
-        request: []
-    };
-    saveToStorage();
+  window.db = {
+    accounts: [
+      {
+        firstName: "User",
+        lastName: "Admin",
+        email: "admin@example.com",
+        password:"Password123!",
+        role: "admin",
+        verified: true
+      }
+    ],
+    departments: [
+      {
+        id: 1, 
+        name: "Engineering", 
+        description: "Software Teams"
+      },
+      {
+        id: 2, 
+        name: "HR",
+        description: "Human Resources"
+      }
+    ],
+  };
+  saveToStorage();
 }
 
 //SAVE TO STORAGE
@@ -78,8 +84,8 @@ function handleRouting() {
 
   const targetPage = document.getElementById(route + "-page");
 
-  const protectedRoutes = ["profile", "employees"];
-  const adminRoutes = ["employees"];
+  const protectedRoutes = ["profile", "employees", "accounts", "departments", "my-requests"];
+  const adminRoutes = ["employees", "accounts", "departments"];
 
   if (protectedRoutes.includes(route) && !currentUser) {
     navigateTo("#/login");
@@ -101,6 +107,19 @@ function handleRouting() {
 
         case "employees" :
             renderEmployeesTable();
+            break;
+
+        case "accounts":
+            renderAccountsList();   
+            break;
+
+        case "departments":
+            renderDepartmentsList();
+            break;    
+            
+        case "my-requests":
+            renderMyRequests();
+            break;    
     }
 
   } else {
@@ -219,6 +238,7 @@ function setAuthState(isAuth, user = null) {
       document.body.classList.add("is-admin");
     }
 
+    // Update username in navbar
     document.getElementById("navUsername").innerText =
       user.firstName + " " + user.lastName;
 
@@ -315,7 +335,7 @@ function renderDepartmentsDropdown() {
   });
 }
 
-//SAVE EMPLOYEE
+
 function saveEmployee() {
 
     const empId = document.getElementById("empId").value.trim();
@@ -351,6 +371,154 @@ function deleteEmployee(empId) {
     localStorage.setItem("employees", JSON.stringify(employees));
     renderEmployeesTable();
 }
+
+
+//ACCOUNTS
+function renderAccountsList() {
+  const tbody = document.getElementById("accountsTableBody");
+  tbody.innerHTML = "";
+
+  window.db.accounts.forEach((acc, index) => {
+    const tr = document.createElement("tr");
+
+    tr.innerHTML = `
+      <td>${acc.firstName} ${acc.lastName}</td>
+      <td>${acc.email}</td>
+      <td>${acc.role}</td>
+      <td>${acc.verified ? "✔" : "—"}</td>
+      <td>
+        <button class="btn btn-sm btn-warning me-1" onclick="editAccount(${index})">Edit</button>
+        <button class="btn btn-sm btn-secondary me-1" onclick="resetPassword(${index})">Reset Password</button>
+        <button class="btn btn-sm btn-danger" onclick="deleteAccount(${index})">Delete</button>
+      </td>
+    `;
+
+    tbody.appendChild(tr);
+  });
+}
+
+function openAccountForm() {
+  document.getElementById("accountFormContainer").classList.remove("d-none");
+  document.getElementById("accountForm").reset();
+  document.getElementById("accountIndex").value = "";
+  document.getElementById("accountFormTitle").innerText = "Add Account";
+}
+
+function closeAccountForm() {
+  document.getElementById("accountFormContainer").classList.add("d-none");
+}
+
+
+document.getElementById("accountForm").addEventListener("submit", function(e) {
+  e.preventDefault();
+
+  const index = document.getElementById("accountIndex").value;
+
+  const accountData = {
+    firstName: accFirstName.value,
+    lastName: accLastName.value,
+    email: accEmail.value,
+    password: accPassword.value,
+    role: accRole.value,
+    verified: accVerified.checked
+  };
+
+  if (accountData.password.length < 6) {
+    alert("Password must be at least 6 characters.");
+    return;
+  }
+
+  if (index === "") {
+    //PREVENT DUPLICATE
+    const exists = window.db.accounts.find(a => a.email === accountData.email);
+    if (exists) {
+      alert("Email already exists.");
+      return;
+    }
+
+    window.db.accounts.push(accountData);
+  } else {
+    window.db.accounts[index] = accountData;
+  }
+
+  saveToStorage();
+  renderAccountsList();
+  closeAccountForm();
+});
+
+
+function editAccount(index) {
+  const acc = window.db.accounts[index];
+
+  document.getElementById("accountIndex").value = index;
+  accFirstName.value = acc.firstName;
+  accLastName.value = acc.lastName;
+  accEmail.value = acc.email;
+  accPassword.value = acc.password;
+  accRole.value = acc.role;
+  accVerified.checked = acc.verified;
+
+  document.getElementById("accountFormTitle").innerText = "Edit Account";
+  document.getElementById("accountFormContainer").classList.remove("d-none");
+}
+
+
+function resetPassword(index) {
+  const newPass = prompt("Enter new password (min 6 chars):");
+
+  if (!newPass || newPass.length < 6) {
+    alert("Password must be at least 6 characters.");
+    return;
+  }
+
+  window.db.accounts[index].password = newPass;
+  saveToStorage();
+  alert("Password updated successfully.");
+}
+
+
+function deleteAccount(index) {
+  const acc = window.db.accounts[index];
+
+  if (acc.email === currentUser.email) {
+    alert("You cannot delete your own account.");
+    return;
+  }
+
+  if (confirm("Are you sure you want to delete this account?")) {
+    window.db.accounts.splice(index, 1);
+    saveToStorage();
+    renderAccountsList();
+  }
+}
+
+//DEPARTMENTS
+function renderDepartmentsList() {
+  const tbody = document.getElementById("departmentsTableBody");
+  tbody.innerHTML = "";
+
+  window.db.departments.forEach((dept, index) => {
+    const tr = document.createElement("tr");
+
+    tr.innerHTML = `
+      <td>${dept.name}</td>
+      <td>${dept.description || "-"}</td>
+      <td>
+        <button class="btn btn-sm btn-warning me-1" onclick="alert('Edit not implemented')">Edit</button>
+        <button class="btn btn-sm btn-danger" onclick="alert('Delete not implemented')">Delete</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+
+//MYREQUEST
+
+
+
+
+
 
 
 //LOGOUT
